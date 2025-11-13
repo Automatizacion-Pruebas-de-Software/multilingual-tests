@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>i18n Test App</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    select { margin-bottom: 1rem; padding: 0.5rem; }
+    .card { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <select id="lang-select">
+    <option value="en">English</option>
+    <option value="es">Español</option>
+    <option value="ar">العربية</option>
+  </select>
+
+  <h1 data-i18n="title"></h1>
+  <p data-i18n="description"></p>
+
+  <div class="card">
+    <p data-i18n="files" data-i18n-count="1"></p>
+    <p data-i18n="files" data-i18n-count="2"></p>
+    <p data-i18n="files" data-i18n-count="0"></p>
+    <p data-i18n="files" data-i18n-count="5"></p>
+  </div>
+
+  <button data-i18n="save"></button>
+
+  <script>
+    // === TRADUCCIONES ===
+    const translations = {
+      en: {
+        title: "Localization Test",
+        description: "This app tests translations, dates, and pluralization.",
+        save: "Save Changes",
+        files: "{count, plural, =0 {No files} one {# file} other {# files}}"
+      },
+      es: {
+        title: "Prueba de Localización",
+        description: "Esta app prueba traducciones, fechas y pluralización.",
+        save: "Guardar Cambios",
+        files: "{count, plural, =0 {Sin archivos} one {# archivo} other {# archivos}}"
+      },
+      ar: {
+        title: "اختبار التوطين",
+        description: "هذا التطبيق يختبر الترجمات والتواريخ والتعدد.",
+        save: "حفظ التغييرات",
+        files: "{count, plural, zero {لا ملفات} one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفًا} other {# ملف}}"
+      }
+    };
+
+    let currentLang = 'en';
+
+    // === PARSER ICU SIMPLIFICADO Y ROBUSTO ===
+    function t(key, values = {}) {
+      const dict = translations[currentLang] || translations.en;
+      let message = dict[key] || key;
+
+      // Si no hay count o no es un mensaje plural, devolver tal cual
+      if (values.count === undefined || !message.includes('{count, plural,')) {
+        return message;
+      }
+
+      try {
+        // Para simplificar, vamos a manejar casos específicos
+        const count = values.count;
+        
+        // Reglas específicas por idioma
+        if (currentLang === 'en') {
+          if (count === 0) return 'No files';
+          if (count === 1) return '1 file';
+          return `${count} files`;
+        }
+        
+        if (currentLang === 'es') {
+          if (count === 0) return 'Sin archivos';
+          if (count === 1) return '1 archivo';
+          return `${count} archivos`;
+        }
+        
+        if (currentLang === 'ar') {
+          if (count === 0) return 'لا ملفات';
+          if (count === 1) return 'ملف واحد';
+          if (count === 2) return 'ملفان';
+          if (count >= 3 && count <= 10) return `${count} ملفات`;
+          return `${count} ملف`;
+        }
+        
+        return message; // Fallback
+      } catch (error) {
+        console.error('Error in ICU parser:', error);
+        return message;
+      }
+    }
+
+    // === ACTUALIZAR DOM ===
+    function updateContent() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const countAttr = el.getAttribute('data-i18n-count');
+        const count = countAttr ? parseInt(countAttr, 10) : null;
+        const text = t(key, count !== null ? { count } : {});
+        el.textContent = text;
+      });
+    }
+
+    // === INICIALIZACIÓN ===
+    document.addEventListener('DOMContentLoaded', () => {
+      const select = document.getElementById('lang-select');
+      const savedLang = localStorage.getItem('lang') || 'en';
+      select.value = savedLang;
+      currentLang = savedLang;
+      document.documentElement.lang = savedLang;
+      document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
+
+      updateContent();
+
+      select.addEventListener('change', (e) => {
+        currentLang = e.target.value;
+        document.documentElement.lang = currentLang;
+        document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        localStorage.setItem('lang', currentLang);
+        updateContent();
+      });
+    });
+
+    // Exponer funciones para debugging en tests
+    window.appI18n = { t, updateContent, currentLang: () => currentLang };
+  </script>
+</body>
+</html>

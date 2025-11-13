@@ -1,0 +1,6 @@
+{
+  "title": "Localization Test",
+  "description": "This app tests translations, dates, and pluralization.",
+  "save": "Save Changes",
+  "files": "{count, plural, =0 {No files} one {# file} other {# files}}"
+}
